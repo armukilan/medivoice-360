@@ -2,7 +2,6 @@
 
 
 # Kaggle Hub is pre-installed in Kaggle notebooks
-# ★ RUN THIS EVERY SESSION
 import kagglehub
 
 # Download Gemma 4 — this pulls directly from Kaggle's model registry
@@ -11,7 +10,6 @@ print("Model path:", path)
 
 
 # Upgrade transformers to latest version that supports Gemma 4
-# ★ RUN THIS EVERY SESSION
 import subprocess
 subprocess.run(["pip", "install", "-q", "--upgrade", "transformers"], check=True)
 
@@ -19,7 +17,6 @@ subprocess.run(["pip", "install", "-q", "--upgrade", "transformers"], check=True
 print("Done. Now go to Run menu → Restart Session, then run from Cell 2 onwards.")
 
 
-# ★ RUN THIS EVERY SESSION
 import torch
 from transformers import AutoTokenizer, AutoModelForImageTextToText, AutoProcessor
 
@@ -38,7 +35,6 @@ model.eval()
 print("Model loaded successfully.")
 
 
-# ★ RUN THIS EVERY SESSION
 def medivoice_generate(user_message, system_prompt=None, max_new_tokens=512):
     if system_prompt is None:
         system_prompt = """You are MediVoice, an AI clinical assistant for community 
@@ -75,7 +71,6 @@ recommend referral for life-threatening conditions. Be concise and accurate."""
 
 
 
-# ★ RUN THIS EVERY SESSION
 import json
 import os
 from datetime import datetime
@@ -144,7 +139,6 @@ def save_visit(patient_id, soap_english, soap_regional, urgency, medications=Non
 print("Patient database system ready.")
 
 
-# ★ RUN THIS EVERY SESSION
 def generate_soap_note(patient_id, consultation_text, language="Tamil"):
     """
     Full MediVoice pipeline:
@@ -193,7 +187,6 @@ Be concise. Be accurate. Always flag HIGH urgency if there are danger signs.
 print("SOAP generator ready.")
 
 
-# ★ RUN THIS EVERY SESSION
 def check_medications(drug_label_text, current_medications, language="Tamil"):
     """
     MedLabel module:
@@ -233,7 +226,6 @@ print("Gradio installed.")
 
 
 
-# ★ RUN THIS EVERY SESSION
 from PIL import Image
 import requests
 from io import BytesIO
@@ -319,7 +311,6 @@ If this is a medical document (prescription, report), summarize key findings.
 print("Image analysis function ready.")
 
 
-# ★ RUN THIS EVERY SESSION
 import gradio as gr
 
 def run_image_analysis(image, patient_id, language):
@@ -510,43 +501,5 @@ with gr.Blocks(title="MediVoice 360", theme=gr.themes.Soft()) as app:
 print("Full UI with RecMed and image support ready.")
 
 
-# ★ RUN THIS EVERY SESSION
 app.launch(share=True)
-
-
-import os
-import subprocess
-from kaggle_secrets import UserSecretsClient
-
-# ── Fetch token securely ──
-secrets = UserSecretsClient()
-GITHUB_TOKEN = secrets.get_secret("GITHUB_TOKEN")
-
-# ── CONFIG ──
-GITHUB_USERNAME = "armukilan"
-REPO_NAME = "medivoice-360"
-COMMIT_MESSAGE = "Update MediVoice 360"
-
-# ── Read source file ──
-source_path = "/kaggle/working/.virtual_documents/__notebook_source__.ipynb"
-
-with open(source_path, "r", encoding="utf-8") as f:
-    raw = f.read()
-
-print("First 500 chars of source:")
-print(raw[:500])
-print("---")
-print(f"Total characters: {len(raw)}")
-
-
-# Quick diagnostic — do not push this
-NOTEBOOK_PATH = "/kaggle/working/.virtual_documents/__notebook_source__.ipynb"
-
-with open(NOTEBOOK_PATH, "r") as f:
-    raw = f.read()
-
-# Print lines 1-50 to see the actual format
-lines = raw.split("\n")
-for i, line in enumerate(lines[:50]):
-    print(f"{i}: {line}")
 
