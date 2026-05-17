@@ -1,5 +1,51 @@
+# # MediVoice 360 🏥
+# ### Offline-first · Multilingual · 360° AI Clinical Assistant for Community Health Workers
+# 
+# ---
+# 
+# ## What is this project?
+# 
+# MediVoice 360 is a fully offline, multilingual clinical assistant built on **Gemma 4**, 
+# designed for community health workers in rural and low-resource settings across the world.
+# 
+# A health worker in rural Tamil Nadu, rural Kenya, or any underserved community can:
+# 
+# - 🎤 Describe a patient consultation in **any language** → get a structured SOAP note in English + their regional language
+# - 📷 Photograph a wound, rash, ECG, MRI, or blood report → get instant clinical analysis
+# - 💊 Photograph a medicine bottle → get dosage instructions in the patient's language + drug interaction check
+# - 📋 Pull up a patient's complete visit history instantly on return visits
+# - 🌍 Communicate with patients in **140+ languages** — all powered by Gemma 4
+# 
+# ## Key Features
+# | Feature | Details |
+# |---|---|
+# | **Offline first** | Runs 100% without internet via Gemma 4 |
+# | **Multilingual** | 140+ languages, auto-detected |
+# | **Multimodal** | Images + text in one model, no stitching |
+# | **Patient records** | Local JSON database, bilingual storage |
+# | **RecMed** | Medicine label reader + drug interaction checker |
+# | **Urgency flagging** | LOW / MEDIUM / HIGH with referral guidance |
+# 
+# ## Tech Stack
+# | Component | Tool |
+# |---|---|
+# | LLM + Vision | Gemma 4 E4B (google/gemma-4/transformers/gemma-4-e4b-it) |
+# | UI | Gradio |
+# | Speech processing | Whisper-compatible input |
+# | Patient database | Local JSON |
+# | Language | Python 3.12 |
+# 
+# ## Hackathon
+# **Gemma 4 Good Hackathon 2026**
+# Tracks: Main Track · Health & Sciences · Digital Equity & Inclusivity
+# 
+# ## GitHub
+# [https://github.com/armukilan/medivoice-360](https://github.com/armukilan/medivoice-360)
+# 
+# ---
+# *No internet. No cloud. No subscription. Just open it and start helping patients.*
 
-
+# -------
 
 # This Python 3 environment comes with many helpful analytics libraries installed
 # It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
@@ -19,6 +65,7 @@ for dirname, _, filenames in os.walk('/kaggle/input'):
 # You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
 # You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
 
+# -------
 
 # Kaggle Hub is pre-installed in Kaggle notebooks.
 import kagglehub
@@ -27,6 +74,7 @@ import kagglehub
 path = kagglehub.model_download("google/gemma-4/transformers/gemma-4-e4b-it")
 print("Model path:", path)
 
+# -------
 
 # Upgrade transformers to latest version that supports Gemma 4
 import subprocess
@@ -35,6 +83,7 @@ subprocess.run(["pip", "install", "-q", "--upgrade", "transformers"], check=True
 # Restart kernel after this cell finishes
 print("Done. Now go to Run menu → Restart Session, then run from Cell 2 onwards.")
 
+# -------
 
 import torch
 from transformers import AutoTokenizer, AutoModelForImageTextToText, AutoProcessor
@@ -53,6 +102,7 @@ model = AutoModelForImageTextToText.from_pretrained(
 model.eval()
 print("Model loaded successfully.")
 
+# -------
 
 # ============================================================
 # CORE INFERENCE FUNCTION
@@ -105,6 +155,7 @@ recommend referral for life-threatening conditions. Be concise and accurate."""
     response = processor.decode(outputs[0][input_len:], skip_special_tokens=True)
     return response
 
+# -------
 
 # ============================================================
 # PATIENT DATABASE SYSTEM
@@ -201,6 +252,7 @@ def save_visit(patient_id, soap_english, soap_regional, urgency, medications=Non
 
 print("Patient database system ready.")
 
+# -------
 
 # ============================================================
 # SOAP NOTE GENERATOR
@@ -279,6 +331,7 @@ Be concise. Be accurate. Always flag HIGH urgency if there are danger signs.
 
 print("SOAP generator ready.")
 
+# -------
 
 # ============================================================
 # MEDICINE SAFETY CHECKER
@@ -343,11 +396,13 @@ Be precise. Patient safety is critical.
 
 print("MedLabel module ready.")
 
+# -------
 
 import subprocess
 subprocess.run(["pip", "install", "-q", "gradio"], check=True)
 print("Gradio installed.")
 
+# -------
 
 # ============================================================
 # IMAGE ANALYSIS MODULE
@@ -457,6 +512,7 @@ Then write a brief summary in {language} for the patient in simple words."""
     )
     return response
 
+# -------
 
 # ============================================================
 # GRADIO HANDLER FUNCTIONS
@@ -511,6 +567,7 @@ def register_patient(patient_id, name, age, language):
 
 print("Handler functions ready.")
 
+# -------
 
 import gradio as gr
 
@@ -701,6 +758,6 @@ with gr.Blocks(title="MediVoice 360", theme=gr.themes.Soft()) as app:
 
 print("Full UI with RecMed and image support ready.")
 
+# -------
 
 app.launch(share=True)
-
