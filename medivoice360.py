@@ -72,7 +72,7 @@ print("Model loaded successfully.")
 #
 # Returns:
 #   response (str) : Gemma 4's generated output as plain text
-# ============================================================
+# =============================================================
 def medivoice_generate(user_message, system_prompt=None, max_new_tokens=512):
     if system_prompt is None:
         system_prompt = """You are MediVoice, an AI clinical assistant for community 
