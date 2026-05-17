@@ -20,7 +20,7 @@ for dirname, _, filenames in os.walk('/kaggle/input'):
 # You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
 
 
-# Kaggle Hub is pre-installed in Kaggle notebooks
+# Kaggle Hub is pre-installed in Kaggle notebooks.
 import kagglehub
 
 # Download Gemma 4 — this pulls directly from Kaggle's model registry
