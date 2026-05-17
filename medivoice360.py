@@ -458,6 +458,60 @@ Then write a brief summary in {language} for the patient in simple words."""
     return response
 
 
+# ============================================================
+# GRADIO HANDLER FUNCTIONS
+# ============================================================
+
+def run_consultation(patient_id, consultation_text, language):
+    if not patient_id or not consultation_text:
+        return "Please enter both Patient ID and consultation text."
+    patient = get_patient(patient_id)
+    if not patient:
+        return f"Patient ID {patient_id} not found. Please register the patient first."
+    result = generate_soap_note(patient_id, consultation_text, language=language)
+    save_visit(
+        patient_id=patient_id,
+        soap_english=result,
+        soap_regional=f"Included in output above ({language} summary)",
+        urgency="SEE OUTPUT",
+        medications=[]
+    )
+    return result
+
+def lookup_patient(patient_id):
+    if not patient_id:
+        return "Please enter a Patient ID."
+    patient = get_patient(patient_id)
+    if not patient:
+        return f"No patient found with ID: {patient_id}"
+    history = get_patient_history_text(patient_id)
+    summary = f"""
+NAME: {patient['name']}
+AGE: {patient['age']}
+LANGUAGE: {patient['language']}
+TOTAL VISITS: {len(patient['visits'])}
+
+FULL HISTORY:
+{history}
+"""
+    return summary
+
+def register_patient(patient_id, name, age, language):
+    if not all([patient_id, name, age, language]):
+        return "Please fill in all fields."
+    try:
+        age = int(age)
+    except ValueError:
+        return "Age must be a number."
+    existing = get_patient(patient_id)
+    if existing:
+        return f"Patient ID {patient_id} already exists: {existing['name']}"
+    create_patient(patient_id, name, age, language)
+    return f"Patient {name} registered successfully with ID: {patient_id}"
+
+print("Handler functions ready.")
+
+
 import gradio as gr
 
 def run_image_analysis(image, patient_id, language):
