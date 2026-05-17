@@ -1,6 +1,25 @@
 
 
 
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+
+
 # Kaggle Hub is pre-installed in Kaggle notebooks
 import kagglehub
 
@@ -35,6 +54,25 @@ model.eval()
 print("Model loaded successfully.")
 
 
+# ============================================================
+# CORE INFERENCE FUNCTION
+# ============================================================
+# medivoice_generate() is the central function that communicates
+# with Gemma 4. Every feature in MediVoice — SOAP notes,
+# multilingual output, drug checks, and clinical reasoning —
+# flows through this single function.
+#
+# Parameters:
+#   user_message   : The input text (symptoms, consultation notes,
+#                    medicine details etc.) in any language
+#   system_prompt  : Optional override for the default MediVoice
+#                    system prompt. Controls model behaviour.
+#   max_new_tokens : Maximum length of generated response.
+#                    Default 512. Use 800+ for detailed SOAP notes.
+#
+# Returns:
+#   response (str) : Gemma 4's generated output as plain text
+# ============================================================
 def medivoice_generate(user_message, system_prompt=None, max_new_tokens=512):
     if system_prompt is None:
         system_prompt = """You are MediVoice, an AI clinical assistant for community 
@@ -68,8 +106,33 @@ recommend referral for life-threatening conditions. Be concise and accurate."""
     return response
 
 
-
-
+# ============================================================
+# PATIENT DATABASE SYSTEM
+# ============================================================
+# MediVoice stores all patient records locally on the device
+# as a JSON file — no cloud, no external database required.
+#
+# Every patient has:
+#   - A unique Patient ID (e.g. MV-1001)
+#   - Name, age, and primary language
+#   - A complete visit history — every consultation saved
+#     in both English and their regional language
+#
+# On a return visit, the health worker enters the Patient ID
+# and the full history is instantly available — giving Gemma 4
+# the entire context to reason across (128K context window).
+#
+# Database location: /kaggle/working/medivoice_db.json
+# Format: JSON (human-readable, portable, offline-safe)
+#
+# Functions defined in this section:
+#   load_db()              : Load the database from disk
+#   save_db()              : Save the database to disk
+#   create_patient()       : Register a new patient
+#   get_patient()          : Fetch a patient record by ID
+#   get_patient_history_text() : Get full visit history as text
+#   save_visit()           : Append a new visit to a patient record
+# ============================================================
 
 import json
 import os
@@ -139,6 +202,36 @@ def save_visit(patient_id, soap_english, soap_regional, urgency, medications=Non
 print("Patient database system ready.")
 
 
+# ============================================================
+# SOAP NOTE GENERATOR
+# ============================================================
+# generate_soap_note() is the core clinical documentation
+# function of MediVoice. It takes a patient consultation —
+# in any language — and produces a structured medical note.
+#
+# What it does:
+#   1. Pulls the patient's full visit history from the database
+#      and feeds it into Gemma 4's 128K context window
+#   2. Sends the consultation text to Gemma 4 for reasoning
+#   3. Generates a structured SOAP note in English:
+#        S — Subjective  : What the patient reports
+#        O — Objective   : Vitals and observations
+#        A — Assessment  : Likely diagnosis
+#        P — Plan        : Treatment and referral guidance
+#   4. Flags urgency level: LOW / MEDIUM / HIGH
+#   5. Generates a patient-friendly summary in the patient's
+#      regional language (Tamil, Hindi, Swahili, etc.)
+#   6. Auto-saves the visit to the patient database
+#
+# Parameters:
+#   patient_id         : Unique patient ID (e.g. MV-1001)
+#   consultation_text  : Raw consultation notes in any language
+#   language           : Patient's regional language for summary
+#
+# Returns:
+#   result (str) : Full SOAP note + urgency + regional summary
+# ============================================================
+
 def generate_soap_note(patient_id, consultation_text, language="Tamil"):
     """
     Full MediVoice pipeline:
@@ -187,6 +280,42 @@ Be concise. Be accurate. Always flag HIGH urgency if there are danger signs.
 print("SOAP generator ready.")
 
 
+# ============================================================
+# MEDICINE SAFETY CHECKER
+# ============================================================
+# check_medications() is the core function behind the RecMed
+# module. It takes medicine label information — either typed
+# manually or extracted from a photo — and performs a full
+# medication safety analysis.
+#
+# What it does:
+#   1. Extracts key details from the medicine label:
+#        - Drug name, dosage, frequency, warnings
+#   2. Checks for dangerous interactions between the new
+#      medicine and the patient's current medications
+#      using Gemma 4's agentic reasoning
+#   3. Explains dosage instructions in simple, plain language
+#      in both English and the patient's regional language
+#   4. Flags any warnings or contraindications clearly
+#
+# Why this matters:
+#   In rural and low-resource settings, patients often cannot
+#   read medicine labels — especially when labels are in a
+#   different language. A missed warning or wrong dosage can
+#   be life-threatening. RecMed bridges that gap.
+#
+# Parameters:
+#   drug_label_text      : Text from medicine label (manual input
+#                          or extracted from image)
+#   current_medications  : List of patient's current medications
+#                          for interaction checking
+#   language             : Patient's regional language for output
+#
+# Returns:
+#   result (str) : Drug details + interaction check + regional
+#                  language explanation
+# ============================================================
+
 def check_medications(drug_label_text, current_medications, language="Tamil"):
     """
     MedLabel module:
@@ -215,26 +344,56 @@ Be precise. Patient safety is critical.
 print("MedLabel module ready.")
 
 
-
-
-
 import subprocess
 subprocess.run(["pip", "install", "-q", "gradio"], check=True)
 print("Gradio installed.")
 
 
-
-
+# ============================================================
+# IMAGE ANALYSIS MODULE
+# ============================================================
+# analyze_image() leverages Gemma 4's native multimodal vision
+# to analyze any medical image uploaded by the health worker.
+# No separate vision model needed — Gemma 4 handles both
+# text and image understanding in a single unified model.
+#
+# Supported image types:
+#   - Wounds, rashes, skin conditions
+#   - Blood reports, urine test results
+#   - ECG, EEG strips
+#   - MRI, CT scan images
+#   - Prescriptions and medical documents
+#   - Medicine labels and blister packs
+#
+# What it does:
+#   1. Accepts any PIL image uploaded by the health worker
+#   2. Optionally pulls patient history from the database
+#      for context-aware analysis
+#   3. Sends image + context to Gemma 4 vision pipeline
+#   4. Generates structured clinical observations:
+#        - Visual findings
+#        - Clinical impression
+#        - Severity (Mild / Moderate / Severe)
+#        - Recommended action
+#        - Urgency (LOW / MEDIUM / HIGH)
+#   5. Provides a plain-language summary in the patient's
+#      regional language
+#   6. Auto-saves findings to the patient's visit record
+#
+# Parameters:
+#   image       : PIL Image object uploaded via Gradio
+#   patient_id  : Optional patient ID for history context
+#   language    : Patient's regional language for summary
+#
+# Returns:
+#   response (str) : Full image analysis + regional summary
+# ============================================================
 
 from PIL import Image
 import requests
 from io import BytesIO
 
 def analyze_image(image, patient_id, language="Tamil"):
-    """
-    Takes an uploaded image (wound, rash, medicine label photo, 
-    or medical document) and generates a clinical analysis.
-    """
     if image is None:
         return "No image provided."
 
@@ -242,18 +401,15 @@ def analyze_image(image, patient_id, language="Tamil"):
     patient_context = ""
     if patient:
         history = get_patient_history_text(patient_id)
-        patient_context = f"""
-PATIENT CONTEXT:
-{history}
----
-"""
+        patient_context = f"PATIENT BACKGROUND:\n{history}\n---\n"
 
     messages = [
         {
             "role": "system",
-            "content": """You are MediVoice, an AI clinical assistant for 
-community health workers. Analyze medical images carefully and provide 
-structured clinical observations. Always recommend referral for serious findings."""
+            "content": """You are MediVoice, an AI clinical assistant for community 
+health workers. An image has been directly provided to you in this message. 
+Analyze ONLY the image attached. Ignore any text descriptions of previous images. 
+Always analyze the actual image provided."""
         },
         {
             "role": "user",
@@ -264,22 +420,15 @@ structured clinical observations. Always recommend referral for serious findings
                 },
                 {
                     "type": "text",
-                    "text": f"""
-{patient_context}
-Please analyze this medical image and provide:
+                    "text": f"""{patient_context}Analyze the medical image provided above. Give:
 
-1. VISUAL FINDINGS: What do you observe in the image?
-2. CLINICAL IMPRESSION: What condition(s) does this suggest?
+1. VISUAL FINDINGS: What do you see in this image?
+2. CLINICAL IMPRESSION: What condition does this suggest?
 3. SEVERITY: Mild / Moderate / Severe
 4. RECOMMENDED ACTION: Treatment or referral guidance
 5. URGENCY: LOW / MEDIUM / HIGH
 
-Then provide a brief summary in {language} for the patient/health worker.
-
-Important: If this is a medicine label, extract drug name, dosage, 
-frequency and explain in {language}.
-If this is a medical document (prescription, report), summarize key findings.
-"""
+Then write a brief summary in {language} for the patient in simple words."""
                 }
             ]
         }
@@ -307,8 +456,6 @@ If this is a medical document (prescription, report), summarize key findings.
         skip_special_tokens=True
     )
     return response
-
-print("Image analysis function ready.")
 
 
 import gradio as gr
