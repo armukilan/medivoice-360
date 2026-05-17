@@ -9,7 +9,7 @@ rural and low-resource settings the power of a full clinical team:
 
 - 🎤 Voice and text consultation in any language → bilingual SOAP note
 - 📷 Medical image analysis (wounds, rashes, ECG, MRI, blood reports)
-- 💊 RecMed — medicine label reader + drug interaction checker
+- 💊 MedReader — medicine label reader + drug interaction checker
 - 📋 Patient history tracking in English + regional language
 - 🌍 140+ languages supported via Gemma 4
 
@@ -38,3 +38,6 @@ rural and low-resource settings the power of a full clinical team:
 
 ## Hackathon
 Gemma 4 Good Hackathon 2026
+
+## Future Plan
+Planning to expand it into a whole application for Mobile as well as Desktop.
